@@ -13,10 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 def _build_page_url(base_url: str, page_index: int) -> str:
-    # If template placeholder exists, use it
     if "{page}" in base_url:
         return base_url.format(page=page_index)
-    # Otherwise, append page= parameter
     sep = "&" if ("?" in base_url) else "?"
     return f"{base_url}{sep}page={page_index}"
 
@@ -26,8 +24,26 @@ def run_scraper(settings: Settings) -> int:
 
     total_items = 0
     with PostgresStorage(settings) as storage:
-        storage.ensure_schema_and_tables()
+        if settings.create_tables:
+            storage.ensure_schema_and_tables()
 
+        if settings.scraper_mode == "dbindex":
+            page_url = settings.base_url
+            try:
+                resp = retrying_fetch(session, page_url, timeout=settings.request_timeout_seconds, max_attempts=settings.max_retries)
+            except Exception as ex:
+                logger.warning("Failed to fetch db index %s: %s", page_url, ex)
+                return 0
+            items = parse_list_page(resp.text, settings.base_url)
+            for it in items:
+                # For binary datasets, skip detail fetch
+                it.content_text = None
+                it.content_hash = None
+            storage.upsert_documents(items)
+            total_items += len(items)
+            return total_items
+
+        # fallback: news mode
         for page in range(settings.max_pages):
             page_url = _build_page_url(settings.base_url, page)
             try:

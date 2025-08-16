@@ -1,9 +1,13 @@
-from ferc_scraper.config import get_settings
+from ferc_scraper.config import get_settings, Settings
 from ferc_scraper.scraper import run_scraper
 
 
 def main():
-    settings = get_settings()
+    base = get_settings()
+    settings: Settings = base.model_copy(update={
+        "scraper_mode": "dbindex",
+        "create_tables": False,
+    })
     run_scraper(settings)
 
 

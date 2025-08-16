@@ -7,12 +7,16 @@ from pydantic import BaseModel, Field, field_validator
 
 class Settings(BaseModel):
     # HTTP/scraper settings
-    base_url: str = Field(default=os.getenv("BASE_URL", "https://www.ferc.gov/news-events/news"))
+    base_url: str = Field(default=os.getenv("BASE_URL", "https://www.ferc.gov/download-database"))
     max_pages: int = Field(default=int(os.getenv("MAX_PAGES", "1")))
     request_timeout_seconds: float = Field(default=float(os.getenv("REQUEST_TIMEOUT_SECONDS", "20")))
     max_retries: int = Field(default=int(os.getenv("MAX_RETRIES", "6")))
     scd_type: int = Field(default=int(os.getenv("SCD_TYPE", "2")))  # 1 or 2
     fetch_details: bool = Field(default=os.getenv("FETCH_DETAILS", "true").lower() in {"1", "true", "yes"})
+    scraper_mode: str = Field(default=os.getenv("SCRAPER_MODE", "dbindex"))  # dbindex or news
+
+    # DDL behavior
+    create_tables: bool = Field(default=os.getenv("CREATE_TABLES", "false").lower() in {"1", "true", "yes"})
 
     # Networking
     outbound_proxy_url: Optional[str] = Field(default=os.getenv("OUTBOUND_PROXY_URL"))
