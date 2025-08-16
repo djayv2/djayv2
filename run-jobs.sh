@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ -f .env ]; then
+	set -a
+	. ./.env
+	set +a
+fi
+
 IMAGE_NAME="ferc-scraper"
 
 docker build -t "$IMAGE_NAME" -f Dockerfile .
