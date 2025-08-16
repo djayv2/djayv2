@@ -23,5 +23,8 @@ RUN uv pip install --system -r requirements.txt
 # Copy the current directory contents into the container at /app
 COPY . /app
 
+ENV PYTHONPATH=/app/src
+ENV ADHOC_SCRIPTS=None
+
 # Execute Driver
 CMD ["python", "./main_driver.py"]
