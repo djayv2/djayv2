@@ -62,7 +62,10 @@ class PostgresStorage:
 		assert self._conn is not None
 		schema = self._settings.db_schema
 		cur = self._conn.cursor()
-		cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+		try:
+			cur.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+		except Exception as exc:
+			logger.warning("Skipping schema creation for %s due to error: %s", schema, exc)
 
 		# SCD1 table
 		cur.execute(
