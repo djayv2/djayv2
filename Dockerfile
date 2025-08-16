@@ -1,21 +1,27 @@
-FROM python:3.11-slim
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-WORKDIR /app
-
-# System deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates netcat-traditional \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql \
+    postgresql-contrib \
+    libpq-dev \
+    gcc \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Set the working directory in the container
+WORKDIR /app
 
-COPY src /app/src
-COPY main.py /app/main.py
+# Install any needed packages specified in requirements.txt
+COPY requirements.txt /app/
 
-ENV PYTHONPATH=/app/src
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-ENTRYPOINT ["python", "main.py"]
+RUN uv pip install --system -r requirements.txt
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Execute Driver
+CMD ["python", "./main_driver.py"]

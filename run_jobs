@@ -8,4 +8,4 @@ if [ -f .env ]; then
 	set +a
 fi
 
-bash ./run-jobs.sh "$@"
+exec bash ./run-jobs.sh "$@"
