@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# load .env if present
+if [ -f .env ]; then
+	set -a
+	. ./.env
+	set +a
+fi
+
+exec bash ./run-jobs.sh "$@"
