@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import List
+import os
 
 from .config import Settings
 from .http import build_session, retrying_fetch, content_sha256, random_jitter_sleep
@@ -41,6 +42,46 @@ def run_scraper(settings: Settings) -> int:
                 it.content_hash = None
             storage.upsert_documents(items)
             total_items += len(items)
+
+            # Optional deep ingest of CSV datasets
+            if os.getenv("INGEST_DATASETS", "false").lower() in {"1", "true", "yes"}:
+                from .downloader import download_file
+                from .ingest import ingest_csv
+                import zipfile
+
+                for it in items:
+                    url_lower = it.url.lower()
+                    if url_lower.endswith(".csv") or url_lower.endswith(".csv.gz") or url_lower.endswith(".zip"):
+                        try:
+                            tmp_path, sha, size = download_file(session, it.url, settings.request_timeout_seconds, settings.max_retries)
+                            logger.info("Downloaded %s (%d bytes)", it.url, size)
+                            data_bytes = None
+                            if tmp_path.endswith(".gz"):
+                                import gzip
+                                with gzip.open(tmp_path, "rb") as g:
+                                    data_bytes = g.read()
+                            elif tmp_path.endswith(".zip"):
+                                with zipfile.ZipFile(tmp_path, 'r') as zf:
+                                    # pick first CSV
+                                    for name in zf.namelist():
+                                        if name.lower().endswith('.csv'):
+                                            with zf.open(name) as f:
+                                                data_bytes = f.read()
+                                            break
+                            else:
+                                with open(tmp_path, 'rb') as f:
+                                    data_bytes = f.read()
+                            if data_bytes:
+                                raw_table = os.getenv("RAW_TABLE", "ferc_raw")
+                                ingested = ingest_csv(storage, settings.db_schema, raw_table, data_bytes, it.url)
+                                logger.info("Ingested %d rows from %s", ingested, it.url)
+                        except Exception as ex:
+                            logger.warning("Ingest failed for %s: %s", it.url, ex)
+                        finally:
+                            try:
+                                os.remove(tmp_path)
+                            except Exception:
+                                pass
             return total_items
 
         # fallback: news mode
