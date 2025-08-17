@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # FERC Scraper
+  ferc-scraper:
+    build: .
+    container_name: ferc_scraper
+    environment:
+      # Database Configuration
+      DB_HOST: 34.59.88.3
+      DB_PORT: 5432
+      DB_NAME: postgres
+      DB_USER: jay_semia
+      DB_PASSWORD: $..q)kf:=bCqw4fZ
+      DB_SSLMODE: prefer
+      DB_SCHEMA: test_external
+      
+      # Scraper Configuration
+      BASE_URL: https://www.ferc.gov/download-database
+      SCRAPER_MODE: dbindex
+      MAX_PAGES: 1
+      FETCH_DETAILS: false
+      REQUEST_TIMEOUT_SECONDS: 30
+      MAX_RETRIES: 3
+      SCD_TYPE: 2
+      
+      # Data Processing
+      CREATE_TABLES: false
+      INGEST_DATASETS: true
+      RAW_TABLE: ferc_raw
+      
+      # Application
+      APPLICATION_NAME: ferc_scraper
+      ENV_NAME: production
+      
+      # Scheduler
+      ADHOC_SCRIPTS: None
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3

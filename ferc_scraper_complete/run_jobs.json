@@ -1,0 +1,3 @@
+{
+    "scraper_name": {"path_to_job": "./scrapers/scraper_name.py", "schedule": "* * * * *", "size": "small"}
+}
